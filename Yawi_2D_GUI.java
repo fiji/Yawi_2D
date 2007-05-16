@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////
 //
-//		Yawi2D (Yet Another Wand for ImageJ 2D) - 2.0.1
+//		Yawi2D (Yet Another Wand for ImageJ 2D) - 2.1.0-SVN
 //				http://yawi3d.sourceforge.net
 //
 // This is the selection tool (magic wand) used on 2D slices 
@@ -18,7 +18,7 @@
 // Start date:
 // 	2004-05-05
 // Last update date:
-// 	2007-05-09
+// 	2007-05-16
 //
 // Authors:
 //	Davide Coppola - dav_mc@users.sourceforge.net
@@ -438,9 +438,7 @@ public class Yawi_2D_GUI implements PlugIn
 
 				txt_area.setText("Yawi is not running");
 
-				roi = null;
 				mw.getCanvas().repaint();
-				hist_canv.repaint();
 			}
 		}
 
@@ -580,7 +578,6 @@ public class Yawi_2D_GUI implements PlugIn
 			img_pixels = (byte[])ip.getPixels();
 		}
 
-
 		/// this listener is activated when the user select File->Open
 		class FileOpenListener implements ActionListener
 		{
@@ -609,7 +606,7 @@ public class Yawi_2D_GUI implements PlugIn
 					if(LoadImg(img_file))
 						// make the GUI showing the loaded image
 						BuildImgGUI(false);
-                                        // ERROR
+					// ERROR
 					else
 						IJ.error("Error loading the file: " + img_file);
 				}
@@ -760,8 +757,8 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			public void adjustmentValueChanged(AdjustmentEvent e) 
 			{
-				SetSlice(e.getValue()); 
-				hist_canv.repaint();
+				SetSlice(e.getValue());
+				mw.RepaintHistogram();
 			}
 		}
 
@@ -823,7 +820,7 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			super.paint(g);
 
-			if(roi != null)
+			if(roi != null && working)
 				drawOverlay(g);
 		}
 
@@ -834,14 +831,14 @@ public class Yawi_2D_GUI implements PlugIn
 			g.drawString("Roi from " + start_p.x + "," + start_p.y , 15, 15);
 		}
 
-		// mouse is clicked on the image
-		public void mousePressed(MouseEvent e)
+		public void mouseReleased(MouseEvent e)
 		{
 			if(working)
 				MakeROI(offScreenX(e.getX()), offScreenY(e.getY()));
-			// original mousePressed
 			else
-				super.mousePressed(e);
+				super.mouseReleased(e);
+
+			mw.RepaintHistogram();
 		}
 	}
 
@@ -855,11 +852,10 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			super.paint(g);
 
-			if(roi != null)
-				drawHistogram(g);
+			drawHistogram(g);
 		}
 
-                /// draw the histogram plot
+		/// draw the histogram plot
 		void drawHistogram(Graphics g)
 		{
 			g.setColor(Color.gray);
@@ -904,7 +900,11 @@ public class Yawi_2D_GUI implements PlugIn
 		}
 
 		/// when the mouse is moved on the plot show some info
-		public void mouseMoved(java.awt.event.MouseEvent e) { mw.PrintHistogramInfo(e.getX(), e.getY()); }
+		public void mouseMoved(java.awt.event.MouseEvent e)
+		{
+			//if(roi != null)
+				mw.PrintHistogramInfo(e.getX(), e.getY()); 
+		}
 	}
 
 	/// generate the ROI
