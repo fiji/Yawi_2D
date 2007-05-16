@@ -1,0 +1,5 @@
+# 2.0.1 - 2007/05/09
+
+- fixed a bug related to images loading
+- fixed a division by 0 bug in histogram computation
+- now histogram is updated when a ROI exists and user changes the current slice
