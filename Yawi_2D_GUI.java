@@ -858,7 +858,7 @@ public class Yawi_2D_GUI implements PlugIn
 		/// draw the histogram plot
 		void drawHistogram(Graphics g)
 		{
-			g.setColor(Color.gray);
+			//g.setColor(Color.red);
 
 			ByteStatistics stats = (ByteStatistics)img_ref.getStatistics();
 
@@ -889,21 +889,29 @@ public class Yawi_2D_GUI implements PlugIn
 			for(int k = 0; k < HIST_COLORS; k++)
 				hist[k] = hist[k] * HIST_LIMIT_Y / occ_mode;
 
-                            // maxCount is too big so draw the MAX height in the graphic
+			// maxCount is too big so draw the MAX height in the graphic
 			if(occ_mode == sec_occ_mode)
 				hist[stats.mode] = HIST_MAX_Y;
 
-                              // draw the values
-			for(int i = 0; i < HIST_COLORS; i++)
-				g.drawLine(HIST_XPAD + i, HIST_YPAD, HIST_XPAD + i, HIST_YPAD - hist[i]);
+			int r = 40;
 
+			// draw the values
+			for(int i = 0; i < HIST_COLORS; i++)
+			{
+				if((i % 26) == 0)
+				{
+					r += 20;
+					g.setColor(new Color(r, 0, 0));
+				}
+
+				g.drawLine(HIST_XPAD + i, HIST_YPAD, HIST_XPAD + i, HIST_YPAD - hist[i]);
+			}
 		}
 
 		/// when the mouse is moved on the plot show some info
 		public void mouseMoved(java.awt.event.MouseEvent e)
 		{
-			//if(roi != null)
-				mw.PrintHistogramInfo(e.getX(), e.getY()); 
+			mw.PrintHistogramInfo(e.getX(), e.getY());
 		}
 	}
 
