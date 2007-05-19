@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 //
 //		Yawi2D (Yet Another Wand for ImageJ 2D) - 2.1.0-SVN
 //				http://yawi3d.sourceforge.net
@@ -18,13 +18,13 @@
 // Start date:
 // 	2004-05-05
 // Last update date:
-// 	2007-05-16
+// 	2007-05-19
 //
 // Authors:
 //	Davide Coppola - dav_mc@users.sourceforge.net
 //	Mario Rosario Guarracino - marioguarracino@users.sourceforge.net
 //
-////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 
 import ij.*;
 import ij.io.*;
@@ -50,8 +50,8 @@ public class Yawi_2D_GUI implements PlugIn
 	private byte[] img_pixels;
 	/// image dimension
 	private Dimension img_dim = new Dimension();
-	/// a global reference to the current image
-	private ImagePlus img_ref = null;
+
+	private int new_type;
 
 	/// lower threshold limit
 	private int lower_threshold;
@@ -89,6 +89,8 @@ public class Yawi_2D_GUI implements PlugIn
 
 	/// generated ROI
 	private	Roi roi = null;
+
+	Dimension screen_dim = Toolkit.getDefaultToolkit().getScreenSize();
 
 	/// the main window
 	MainWindow mw = null;
@@ -153,6 +155,8 @@ public class Yawi_2D_GUI implements PlugIn
 
 		private String last_file_dir = null;
 		private String last_seq_dir = null;
+
+		//private ConversionDialog d = null;
 
 		MainWindow(String title)
 		{
@@ -267,6 +271,8 @@ public class Yawi_2D_GUI implements PlugIn
 			WindowManager.addWindow(this);
 			WindowManager.setCurrentWindow(this);
 		}
+
+		ImagePlus GetImagePlus() { return imp; };
 
 		/// build the GUI for image managing
 		/// if with_stack is true, it's build a GUI for a stack of images
@@ -401,7 +407,7 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			if(x >= HIST_XPAD  && x < (HIST_XPAD + HIST_COLORS) && y > HIST_TOP_YPAD && y < HIST_YPAD)
 			{
-				ByteStatistics stats = (ByteStatistics)img_ref.getStatistics();
+				ByteStatistics stats = (ByteStatistics)(mw.GetImagePlus().getStatistics());
 
 				// histogram data
 				int[] hist = stats.histogram;
@@ -453,8 +459,8 @@ public class Yawi_2D_GUI implements PlugIn
 				left_pan = null ;
 				right_pan = null;
 
-				imp = null;
-				ic = null;
+				imp = new ImagePlus();
+				ic = new ImageCanvas(imp);
 			}
 		}
 
@@ -470,19 +476,17 @@ public class Yawi_2D_GUI implements PlugIn
 			// check if img has been loaded without problems
 			if(img == null)
 				return false;
-			else
-				imp = img;
 
-			// check if the image is 8-bit gray
-			if(imp.getType() != ImagePlus.GRAY8)
-			{
-				// convert the image to 8-bit gray
-				ImageConverter conv = new ImageConverter(imp);
-				conv.convertToGray8();
-			}
+			// default value
+			new_type = ImagePlus.GRAY8;
 
-			// save a reference to the loaded image
-			img_ref = imp;
+			ConversionDialog d = new ConversionDialog(mw, "Convert the image", img.getType());
+
+			if(img.getType() != new_type)
+				ConvertImage(img, new_type);
+
+			// store the ImagePlus
+			imp = img;
 
 			// update the ImageCanvas with the new Image
 			ic = new ImgCanvas(imp);
@@ -494,11 +498,25 @@ public class Yawi_2D_GUI implements PlugIn
 			// save img pixels
 			img_pixels = (byte[])ip.getPixels();
 
+			if(img_dim.width > img_dim.height)
+			{
+				// image width is bigger than 80% of screen width
+				if((double) (screen_dim.width * 0.80) < (double) img_dim.width)
+					ic.setMagnification((double) ((double)(0.80 * screen_dim.width) / img_dim.width));
+			}
+			else
+			{
+				// image height is bigger than 80% of screen height
+				if((double) (screen_dim.height * 0.80) < (double) img_dim.height)
+					ic.setMagnification((double) ((double)(0.80 * screen_dim.height) / img_dim.height));
+			}
+
 			imp.setWindow(this);
 
 			return true;
 		}
 
+		/// load an image sequence, all the images have to be of the same size and format
 		boolean LoadImgSeq(String seq_dir)
 		{
 			roi = null;
@@ -515,6 +533,9 @@ public class Yawi_2D_GUI implements PlugIn
 			String [] files_list = dir.list();
 			Arrays.sort(files_list);
 
+			// default value
+			new_type = ImagePlus.GRAY8;
+
 			// load all the images in the dir
 			for(int i= 0; i < files_list.length; i++)
 			{
@@ -524,16 +545,15 @@ public class Yawi_2D_GUI implements PlugIn
 				{
 					// no images loaded yet
 					if(loaded_imgs == 0)
-					// build the stack
-					stack = new ImageStack(img.getWidth(), img.getHeight());
-
-					// check if the image is 8-bit gray
-					if(img.getType() != ImagePlus.GRAY8)
 					{
-						// convert the image to 8-bit gray
-						ImageConverter conv = new ImageConverter(img);
-						conv.convertToGray8();
+						ConversionDialog d = new ConversionDialog(mw, "Convert the images", img.getType());
+
+						// build the stack
+						stack = new ImageStack(img.getWidth(), img.getHeight());
 					}
+
+					if(img.getType() != new_type)
+						ConvertImage(img, new_type);
 
 					stack.addSlice(files_list[i], img.getProcessor());
 
@@ -547,9 +567,6 @@ public class Yawi_2D_GUI implements PlugIn
 			{
 				imp = new ImagePlus("stack", stack);
 
-				// save a reference to the loaded image
-				img_ref = imp;
-
 				// update the ImageCanvas with the new Image
 				ic = new ImgCanvas(imp);
 				// store the ImageProcessor
@@ -560,9 +577,42 @@ public class Yawi_2D_GUI implements PlugIn
 				// save img pixels
 				img_pixels = (byte[])ip.getPixels();
 
+				if(img_dim.width > img_dim.height)
+				{
+					// image width is bigger than 80% of screen width
+					if((double) (screen_dim.width * 0.80) < (double) img_dim.width)
+						ic.setMagnification((double) ((double)(0.80 * screen_dim.width) / img_dim.width));
+				}
+				else
+				{
+					// image height is bigger than 80% of screen height
+					if((double) (screen_dim.height * 0.80) < (double) img_dim.height)
+						ic.setMagnification((double) ((double)(0.80 * screen_dim.height) / img_dim.height));
+				}
+
+
 				imp.setWindow(this);
 
 				return true;
+			}
+		}
+
+		/// convert an image to a new format according to new_type argument
+		void ConvertImage(ImagePlus imp, int new_type)
+		{
+			ImageConverter conv = new ImageConverter(imp);
+
+			// convert to 8-bit gray
+			if(new_type == ImagePlus.GRAY8)
+				conv.convertToGray8();
+			// convert to 8-bit color
+			else if(new_type == ImagePlus.COLOR_256)
+			{
+				if(imp.getType() != ImagePlus.COLOR_RGB)
+					conv.convertToRGB();
+
+				ImageConverter conv2 = new ImageConverter(imp);
+				conv2.convertRGBtoIndexedColor(256);
 			}
 		}
 
@@ -709,7 +759,7 @@ public class Yawi_2D_GUI implements PlugIn
 			public void actionPerformed(ActionEvent e)
 			{
 				CenterDialog d = new CenterDialog(mw, "About...",
-					"\t\tYawi2D 2.0.0\n\t    http://yawi3d.sourceforge.net/\n\n" +
+					"\t\tYawi2D 2.1.0\n\t    http://yawi3d.sourceforge.net/\n\n" +
 					"Yawi2D (Yet Another Wand for ImageJ 2D) implements a selection tool for ImageJ " +
 					"suitable for CT scanned images.\n" +
 					"It helps in the selection of a 2D Region Of Interest (ROI) containing a lymphoma " +
@@ -798,6 +848,111 @@ public class Yawi_2D_GUI implements PlugIn
 							mw.getY() + (mw.getHeight() - getHeight()) / 2);
 			}
 		}
+
+		/// a dialog for file conversion
+		public class ConversionDialog extends Dialog implements ActionListener
+		{
+			Checkbox c1;
+			Checkbox c2;
+			Checkbox c3;
+
+			public ConversionDialog(Frame parent, String title, int type)
+			{
+				super(parent, title, true);
+
+				setLayout(new BorderLayout());
+
+				CheckboxGroup group = new CheckboxGroup();
+				c1 = new Checkbox("8-bit gray", group, true);
+				c2 = new Checkbox("8-bit color", group, false);
+				c3 = new Checkbox("16-bit gray", group, false);
+
+				// NOT SUPPORTED YET
+				c3.setEnabled(false);
+
+				Label l = new Label();
+
+				switch(type)
+				{
+					case ImagePlus.GRAY8:
+						l.setText("8-bit gray - Convert to:");
+					break;
+
+					case ImagePlus.GRAY16:
+						l.setText("16-bit gray - Convert to:");
+					break;
+
+					case ImagePlus.GRAY32:
+						l.setText("32-bit gray - Convert to:");
+					break;
+
+					case ImagePlus.COLOR_256:
+						l.setText("8-bit color - Convert to:");
+					break;
+
+					case ImagePlus.COLOR_RGB:
+						l.setText("32-bit color - Convert to:");
+					break;
+
+					default:
+						l.setText("image type unknow - Convert to :");
+					break;
+				}
+
+				add(l, BorderLayout.NORTH);
+
+				Panel p = new Panel();
+				p.setLayout(new GridLayout(3, 1));
+
+				p.add(c1);
+				p.add(c2);
+				p.add(c3);
+
+				add(p, BorderLayout.CENTER);
+
+				Button b = new Button("Convert");
+				b.addActionListener(this);
+
+				add(b, BorderLayout.SOUTH);
+
+				pack();
+
+				// center the dialog in the window
+				setLocation(mw.getX() + (mw.getWidth() - getWidth()) / 2,
+							mw.getY() + (mw.getHeight() - getHeight()) / 2);
+
+				addWindowListener(new WindowAdapter()
+				{
+					public void windowClosing(WindowEvent event)
+					{
+						setVisible(false);
+						dispose();
+					}
+				});
+
+				setVisible(true);
+			}
+
+			// button pressed -> set the new_type value and close the dialog
+			public void actionPerformed(ActionEvent e)
+			{
+				if(c1.getState())
+					new_type = ImagePlus.GRAY8;
+				else if(c2.getState())
+					new_type = ImagePlus.COLOR_256;
+				else
+					new_type = ImagePlus.GRAY16;
+
+				setVisible(false);
+				dispose();
+			}
+
+			public Insets getInsets()
+			{
+				// top, left, bottom, right
+				return (new Insets(20, 50, 20, 50));
+			}
+		}
 	}
 
 	/// this class extends a Panel in order to set the Insets space
@@ -860,7 +1015,7 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			//g.setColor(Color.red);
 
-			ByteStatistics stats = (ByteStatistics)img_ref.getStatistics();
+			ByteStatistics stats = (ByteStatistics)(mw.GetImagePlus().getStatistics());
 
 			// histogram data
 			int[] hist = stats.histogram;
@@ -926,10 +1081,10 @@ public class Yawi_2D_GUI implements PlugIn
 		//there's a selection
 		if(TraceEdge())
 		{
-			Roi previousRoi = img_ref.getRoi();
+			Roi previousRoi = (mw.GetImagePlus()).getRoi();
 			roi = new PolygonRoi(xpoints, ypoints, npoints, Roi.TRACED_ROI);
-			img_ref.killRoi();
-			img_ref.setRoi(roi);
+			(mw.GetImagePlus()).killRoi();
+			(mw.GetImagePlus()).setRoi(roi);
 
 			if(previousRoi != null)
 				roi.update(IJ.shiftKeyDown(), IJ.altKeyDown());
@@ -939,7 +1094,7 @@ public class Yawi_2D_GUI implements PlugIn
 		}
 		else	//no selection
 		{
-			img_ref.killRoi();
+			(mw.GetImagePlus()).killRoi();
 
 			mw.PrintInfo("No selection avalaible, retry...");
 		}
@@ -1393,7 +1548,7 @@ public class Yawi_2D_GUI implements PlugIn
 
 		npoints = smooth_points;
 		roi = new PolygonRoi(xpoints_smooth, ypoints_smooth, smooth_points, Roi.TRACED_ROI);
-		img_ref.setRoi(roi);
+		(mw.GetImagePlus()).setRoi(roi);
 	}
 
 	/// second algorithm for smoothing the ROI
@@ -1462,6 +1617,6 @@ public class Yawi_2D_GUI implements PlugIn
 		npoints = smooth_points;
 
 		roi = new PolygonRoi(xpoints_smooth, ypoints_smooth, smooth_points, Roi.TRACED_ROI);
-		img_ref.setRoi(roi);
+		(mw.GetImagePlus()).setRoi(roi);
 	}
 }
