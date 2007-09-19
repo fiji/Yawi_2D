@@ -5,6 +5,7 @@
 - now it's possible to choose the image format to use when a new image is loaded
 - added support for 8-bit color images
 - added support for big images, when an image is bigger than the screen it's scaled properly
+- added Edit->Settings menu
 
 
 # 2.0.1 - 2007/05/09
