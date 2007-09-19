@@ -18,7 +18,7 @@
 // Start date:
 // 	2004-05-05
 // Last update date:
-// 	2007-09-19
+// 	2007-09-20
 //
 // Authors:
 //	Davide Coppola - dav_mc@users.sourceforge.net
@@ -90,14 +90,19 @@ public class Yawi_2D_GUI implements PlugIn
 	/// generated ROI
 	private	Roi roi = null;
 
+	// default values for settings
 	private static int RAD_DEF = 2;
 	private static float PERC_DEF = 0.6f;
 	private static int SIDE_DEF = 5;
 
+	/// Inside - radius threshold
 	private int _rad_ts = RAD_DEF;
+	/// Inside - minimum percentage
 	private float _min_perc = PERC_DEF;
+	/// SetThreshold - side
 	private int _side = SIDE_DEF;
 
+	/// screen dimension
 	Dimension screen_dim = Toolkit.getDefaultToolkit().getScreenSize();
 
 	/// the main window
@@ -981,7 +986,7 @@ public class Yawi_2D_GUI implements PlugIn
 			}
 		}
 
-		/// a dialog for file conversion
+		/// a dialog for some settings
 		public class SettingsDialog extends Dialog implements ActionListener, AdjustmentListener
 		{
 			Scrollbar rad_sel;
@@ -1022,6 +1027,10 @@ public class Yawi_2D_GUI implements PlugIn
  				rad_sel = new Scrollbar(Scrollbar.HORIZONTAL, _rad_ts, 1, 2, 6);
  				perc_sel = new Scrollbar(Scrollbar.HORIZONTAL, ((int)(_min_perc * 10)), 1, 3, 11);
  				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, _side, 1, 2, 7);
+
+				rad_sel.setBlockIncrement(1);
+				perc_sel.setBlockIncrement(1);
+				side_sel.setBlockIncrement(1);
 
 				rad_sel.addAdjustmentListener(this);
 				perc_sel.addAdjustmentListener(this);
@@ -1078,11 +1087,12 @@ public class Yawi_2D_GUI implements PlugIn
 				setVisible(true);
 			}
 
-			// button pressed -> set the new_type value and close the dialog
+			// button pressed
 			public void actionPerformed(ActionEvent e)
 			{
 				Object obj = e.getSource();
 
+				// reset to default values
 				if(obj == reset)
 				{
 					rad_sel.setValue(RAD_DEF);
@@ -1094,6 +1104,7 @@ public class Yawi_2D_GUI implements PlugIn
 					side_sel.setValue(SIDE_DEF);
 					v3.setText(String.valueOf(SIDE_DEF));
 				}
+				// set setted values and exit
 				else if(obj == ok)
 				{
 					_rad_ts = rad_sel.getValue();
@@ -1105,6 +1116,7 @@ public class Yawi_2D_GUI implements PlugIn
 				}
 			}
 
+			// scrollbar moved
 			public void adjustmentValueChanged(AdjustmentEvent e)
 			{
 				Object obj = e.getSource();
@@ -1259,9 +1271,9 @@ public class Yawi_2D_GUI implements PlugIn
 	{
 		start_p.setLocation(x, y);
 
-		System.out.println("SetThreshold - _side = " + _side);
-		System.out.println("Inside - _rad_ts = " + _rad_ts);
-		System.out.println("Inside - _min_perc = " + _min_perc);
+		IJ.write("SetThreshold - _side = " + _side);
+		IJ.write("Inside - _rad_ts = " + _rad_ts);
+		IJ.write("Inside - _min_perc = " + _min_perc);
 
 		SetThreshold(x, y);
 		AutoOutline(x, y);
