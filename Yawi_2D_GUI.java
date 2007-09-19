@@ -18,7 +18,7 @@
 // Start date:
 // 	2004-05-05
 // Last update date:
-// 	2007-05-19
+// 	2007-09-18
 //
 // Authors:
 //	Davide Coppola - dav_mc@users.sourceforge.net
@@ -243,6 +243,16 @@ public class Yawi_2D_GUI implements PlugIn
 			item.setEnabled(false);
 			edit_menu.add(item);
 
+			edit_menu.addSeparator();
+
+			// Settings
+			item = new MenuItem("Settings");
+			listener = new SettingsListener();
+			item.addActionListener(listener);
+			// disable until an image is loaded
+			item.setEnabled(false);
+			edit_menu.add(item);
+
 			menu_bar.add(edit_menu);
 			// -- END EDIT MENU --
 
@@ -282,7 +292,7 @@ public class Yawi_2D_GUI implements PlugIn
 			// left column
 			left_pan = new Panel();
 			// image/stack panel
-			right_pan = new ImgPanel();
+			right_pan = new InsetsPanel(10, 20, 10, 20);
 
 			left_pan.setLayout(new GridLayout(3, 1));
 			right_pan.setLayout(new BorderLayout());
@@ -395,6 +405,7 @@ public class Yawi_2D_GUI implements PlugIn
 			// enable Edit items
 			edit_menu.getItem(0).setEnabled(true);
 			edit_menu.getItem(1).setEnabled(true);
+			edit_menu.getItem(3).setEnabled(true);
 
 			pack();
 		}
@@ -752,6 +763,16 @@ public class Yawi_2D_GUI implements PlugIn
 			public void actionPerformed(ActionEvent e) { SmoothRoi2(); }
 		}
 
+		/// this listener is activated when the user select Edit->Settings
+		class SettingsListener implements ActionListener
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				// show an AWT FileDialog to choose the file
+				SettingsDialog sd = new SettingsDialog(mw, "Settings");
+			}
+		}
+
 		// this listener is activated when the user select Help->About
 		class HelpAboutListener implements ActionListener
 		{
@@ -854,7 +875,6 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			Checkbox c1;
 			Checkbox c2;
-			Checkbox c3;
 
 			public ConversionDialog(Frame parent, String title, int type)
 			{
@@ -865,10 +885,6 @@ public class Yawi_2D_GUI implements PlugIn
 				CheckboxGroup group = new CheckboxGroup();
 				c1 = new Checkbox("8-bit gray", group, true);
 				c2 = new Checkbox("8-bit color", group, false);
-				c3 = new Checkbox("16-bit gray", group, false);
-
-				// NOT SUPPORTED YET
-				c3.setEnabled(false);
 
 				Label l = new Label();
 
@@ -902,11 +918,10 @@ public class Yawi_2D_GUI implements PlugIn
 				add(l, BorderLayout.NORTH);
 
 				Panel p = new Panel();
-				p.setLayout(new GridLayout(3, 1));
+				p.setLayout(new GridLayout(2, 1));
 
 				p.add(c1);
 				p.add(c2);
-				p.add(c3);
 
 				add(p, BorderLayout.CENTER);
 
@@ -953,15 +968,171 @@ public class Yawi_2D_GUI implements PlugIn
 				return (new Insets(20, 50, 20, 50));
 			}
 		}
+
+		/// a dialog for file conversion
+		public class SettingsDialog extends Dialog implements ActionListener, AdjustmentListener
+		{
+			private int rad_def = 2;
+			private int perc_def = 6;
+			private int side_def = 5;
+
+			Scrollbar rad_sel;
+			Scrollbar perc_sel;
+			Scrollbar side_sel;
+
+			Label v1;
+			Label v2;
+			Label v3;
+
+			Button ok;
+			Button reset;
+
+			public SettingsDialog(Frame parent, String title)
+			{
+				super(parent, title, true);
+
+				setLayout(new BorderLayout());
+
+				InsetsPanel p1 = new InsetsPanel(10, 10, 10, 10);
+				p1.setLayout(new GridLayout(3, 1));
+
+				Label l1 = new Label("Inside radius");
+				Label l2 = new Label("Inside percentage");
+				Label l3 = new Label("Threshold radius");
+
+				p1.add(l1);
+				p1.add(l2);
+				p1.add(l3);
+
+				add(p1, BorderLayout.WEST);
+
+				InsetsPanel p2 = new InsetsPanel(10, 20, 10, 20);
+				p2.setLayout(new GridLayout(3, 1));
+				((GridLayout)(p2.getLayout())).setVgap(10);
+
+				// orientation, value, visible, min, max
+ 				rad_sel = new Scrollbar(Scrollbar.HORIZONTAL, rad_def, 1, 2, 6);
+ 				perc_sel = new Scrollbar(Scrollbar.HORIZONTAL, perc_def, 1, 3, 11);
+ 				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, side_def, 1, 2, 7);
+
+				rad_sel.addAdjustmentListener(this);
+				perc_sel.addAdjustmentListener(this);
+				side_sel.addAdjustmentListener(this);
+
+				p2.add(rad_sel);
+				p2.add(perc_sel);
+				p2.add(side_sel);
+
+				add(p2, BorderLayout.CENTER);
+
+				InsetsPanel p3 = new InsetsPanel(10, 10, 10, 10);
+				p3.setLayout(new GridLayout(3, 1));
+
+				v1 = new Label("2", Label.RIGHT);
+				v2 = new Label("6", Label.RIGHT);
+				v3 = new Label("5", Label.RIGHT);
+
+				p3.add(v1);
+				p3.add(v2);
+				p3.add(v3);
+
+				add(p3, BorderLayout.EAST);
+
+				InsetsPanel p4 = new InsetsPanel(10, 10, 10, 10);
+				p4.setLayout(new GridLayout(1, 2));
+				((GridLayout)(p4.getLayout())).setHgap(20);
+
+				reset = new Button("Default");
+				reset.addActionListener(this);
+				ok = new Button("Ok");
+				ok.addActionListener(this);
+
+				p4.add(reset);
+				p4.add(ok);
+
+				add(p4, BorderLayout.SOUTH);
+
+				pack();
+
+				// center the dialog in the window
+				setLocation(mw.getX() + (mw.getWidth() - getWidth()) / 2,
+							mw.getY() + (mw.getHeight() - getHeight()) / 2);
+
+				addWindowListener(new WindowAdapter()
+				{
+					public void windowClosing(WindowEvent event)
+					{
+						setVisible(false);
+						dispose();
+					}
+				});
+
+				setVisible(true);
+			}
+
+			// button pressed -> set the new_type value and close the dialog
+			public void actionPerformed(ActionEvent e)
+			{
+				Object obj = e.getSource();
+
+				if(obj == reset)
+				{
+					rad_sel.setValue(rad_def);
+					v1.setText(String.valueOf(rad_def));
+
+					perc_sel.setValue(perc_def);
+					v2.setText(String.valueOf(perc_def));
+
+					side_sel.setValue(side_def);
+					v3.setText(String.valueOf(side_def));
+				}
+				else if(obj == ok)
+				{
+
+				}
+			}
+
+			public void adjustmentValueChanged(AdjustmentEvent e)
+			{
+				Object obj = e.getSource();
+
+				if(obj == rad_sel)
+					v1.setText(String.valueOf(rad_sel.getValue()));
+				else if(obj == perc_sel)
+					v2.setText(String.valueOf(perc_sel.getValue()));
+				else if(obj == side_sel)
+					v3.setText(String.valueOf(side_sel.getValue()));
+			}
+
+			public Insets getInsets()
+			{
+				// top, left, bottom, right
+				return (new Insets(20, 20, 20, 20));
+			}
+		}
+
 	}
 
 	/// this class extends a Panel in order to set the Insets space
-	class ImgPanel extends Panel
+	class InsetsPanel extends Panel
 	{
+		int _top;
+		int _left;
+		int _bottom;
+		int _right;
+
+		// top, left, bottom, right
+		public InsetsPanel(int t, int l, int b, int r)
+		{
+			_top = t;
+			_left = l;
+			_bottom = b;
+			_right = r;
+		}
+
 		public Insets getInsets()
 		{
-			// top, left, bottom, right
-			return (new Insets(10, 20, 10, 20));
+			return (new Insets(_top, _left, _bottom, _right));
 		}
 	}
 
