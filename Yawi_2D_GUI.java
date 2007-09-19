@@ -18,7 +18,7 @@
 // Start date:
 // 	2004-05-05
 // Last update date:
-// 	2007-09-18
+// 	2007-09-19
 //
 // Authors:
 //	Davide Coppola - dav_mc@users.sourceforge.net
@@ -89,6 +89,14 @@ public class Yawi_2D_GUI implements PlugIn
 
 	/// generated ROI
 	private	Roi roi = null;
+
+	private static int RAD_DEF = 2;
+	private static float PERC_DEF = 0.6f;
+	private static int SIDE_DEF = 5;
+
+	private int _rad_ts = RAD_DEF;
+	private float _min_perc = PERC_DEF;
+	private int _side = SIDE_DEF;
 
 	Dimension screen_dim = Toolkit.getDefaultToolkit().getScreenSize();
 
@@ -817,7 +825,11 @@ public class Yawi_2D_GUI implements PlugIn
 					"NOTE: an image/image sequence is required to perform this operation.\n\n" +
 					"To improve the generated ROI:\n" +
 					"1. Edit->Smooth1 Roi\n" +
-					"2. Edit->Smooth2 Roi (this could be instable and mess up the ROI)\n\n", true);
+					"2. Edit->Smooth2 Roi (this could be instable and mess up the ROI)\n\n" +
+					"Settings data:\n" +
+					"- Inside radius: \n" +
+					"- Inside percentage: \n" +
+					"- Threshold radius: \n\n", true);
 
 				d.setVisible(true);
 			}
@@ -843,7 +855,7 @@ public class Yawi_2D_GUI implements PlugIn
 				TextArea txt_area;
 
 				if(scroll)
-					txt_area = new TextArea(txt, 15, 55, TextArea.SCROLLBARS_VERTICAL_ONLY);
+					txt_area = new TextArea(txt, 25, 55, TextArea.SCROLLBARS_VERTICAL_ONLY);
 				else
 					txt_area = new TextArea(txt, 15, 55, TextArea.SCROLLBARS_NONE);
 
@@ -972,10 +984,6 @@ public class Yawi_2D_GUI implements PlugIn
 		/// a dialog for file conversion
 		public class SettingsDialog extends Dialog implements ActionListener, AdjustmentListener
 		{
-			private int rad_def = 2;
-			private int perc_def = 6;
-			private int side_def = 5;
-
 			Scrollbar rad_sel;
 			Scrollbar perc_sel;
 			Scrollbar side_sel;
@@ -1011,9 +1019,9 @@ public class Yawi_2D_GUI implements PlugIn
 				((GridLayout)(p2.getLayout())).setVgap(10);
 
 				// orientation, value, visible, min, max
- 				rad_sel = new Scrollbar(Scrollbar.HORIZONTAL, rad_def, 1, 2, 6);
- 				perc_sel = new Scrollbar(Scrollbar.HORIZONTAL, perc_def, 1, 3, 11);
- 				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, side_def, 1, 2, 7);
+ 				rad_sel = new Scrollbar(Scrollbar.HORIZONTAL, _rad_ts, 1, 2, 6);
+ 				perc_sel = new Scrollbar(Scrollbar.HORIZONTAL, ((int)(_min_perc * 10)), 1, 3, 11);
+ 				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, _side, 1, 2, 7);
 
 				rad_sel.addAdjustmentListener(this);
 				perc_sel.addAdjustmentListener(this);
@@ -1028,9 +1036,9 @@ public class Yawi_2D_GUI implements PlugIn
 				InsetsPanel p3 = new InsetsPanel(10, 10, 10, 10);
 				p3.setLayout(new GridLayout(3, 1));
 
-				v1 = new Label("2", Label.RIGHT);
-				v2 = new Label("6", Label.RIGHT);
-				v3 = new Label("5", Label.RIGHT);
+				v1 = new Label(String.valueOf(_rad_ts), Label.RIGHT);
+				v2 = new Label(String.valueOf(((int)(_min_perc * 10))), Label.RIGHT);
+				v3 = new Label(String.valueOf(_side), Label.RIGHT);
 
 				p3.add(v1);
 				p3.add(v2);
@@ -1077,18 +1085,23 @@ public class Yawi_2D_GUI implements PlugIn
 
 				if(obj == reset)
 				{
-					rad_sel.setValue(rad_def);
-					v1.setText(String.valueOf(rad_def));
+					rad_sel.setValue(RAD_DEF);
+					v1.setText(String.valueOf(RAD_DEF));
 
-					perc_sel.setValue(perc_def);
-					v2.setText(String.valueOf(perc_def));
+					perc_sel.setValue(((int)(PERC_DEF * 10)));
+					v2.setText(String.valueOf(((int)(PERC_DEF * 10))));
 
-					side_sel.setValue(side_def);
-					v3.setText(String.valueOf(side_def));
+					side_sel.setValue(SIDE_DEF);
+					v3.setText(String.valueOf(SIDE_DEF));
 				}
 				else if(obj == ok)
 				{
+					_rad_ts = rad_sel.getValue();
+					_min_perc = (float)(perc_sel.getValue() / 10.0f);
+					_side = side_sel.getValue();
 
+					setVisible(false);
+					dispose();
 				}
 			}
 
@@ -1246,6 +1259,10 @@ public class Yawi_2D_GUI implements PlugIn
 	{
 		start_p.setLocation(x, y);
 
+		System.out.println("SetThreshold - _side = " + _side);
+		System.out.println("Inside - _rad_ts = " + _rad_ts);
+		System.out.println("Inside - _min_perc = " + _min_perc);
+
 		SetThreshold(x, y);
 		AutoOutline(x, y);
 
@@ -1303,9 +1320,7 @@ public class Yawi_2D_GUI implements PlugIn
 	/// set the threshold of the ROI
 	private void SetThreshold(int x, int y)
 	{
-		//must be odd
-		int side = 5;
-		int dist = side/2;
+		int dist = _side / 2;
 		int color;
 
 		int i,k;
@@ -1395,28 +1410,24 @@ public class Yawi_2D_GUI implements PlugIn
 		int x_a, x_b;
 		int y_a, y_b;
 
-		if((upper_threshold - lower_threshold) < 10)
-			rad_tresh = 3;
-		else
-			rad_tresh = 4;
-
 		x_a = x_b = y_a = y_b = 0;
+
 
 		// moving UP
 		if(direction == UP)
 		{
-			if(x - rad_tresh > 0)
-				x_a = x - rad_tresh;
+			if(x - _rad_ts > 0)
+				x_a = x - _rad_ts;
 			else
 				x_a = 0;
 
 			if(x + rad_tresh < img_dim.width)
-				x_b = x + rad_tresh;
+				x_b = x + _rad_ts;
 			else
 				x_b = img_dim.width - 1;
 
-			if(y-(rad_tresh * 2) > 0)
-				y_a = y - (rad_tresh * 2);
+			if(y-(_rad_ts * 2) > 0)
+				y_a = y - (_rad_ts * 2);
 			else
 				y_a = 0;
 
@@ -1426,20 +1437,20 @@ public class Yawi_2D_GUI implements PlugIn
 		// moving DOWN
 		if(direction == DOWN)
 		{
-			if(x - rad_tresh > 0)
-				x_a = x - rad_tresh;
+			if(x - _rad_ts > 0)
+				x_a = x - _rad_ts;
 			else
 				x_a = 0;
 
-			if(x + rad_tresh < img_dim.width)
-		 		x_b = x + rad_tresh;
+			if(x + _rad_ts < img_dim.width)
+		 		x_b = x + _rad_ts;
 			else
 				x_b = img_dim.width - 1;
 
 			y_a = y;
 
-			if(y + (rad_tresh * 2) < img_dim.height)
-				y_b = y+(rad_tresh * 2);
+			if(y + (_rad_ts * 2) < img_dim.height)
+				y_b = y+(_rad_ts * 2);
 			else
 				y_b = img_dim.height - 1;
 		}
@@ -1447,20 +1458,20 @@ public class Yawi_2D_GUI implements PlugIn
 		// moving LEFT
 		if(direction == LEFT)
 		{
-			if(x - (2 * rad_tresh) > 0)
-				x_a = x - (2 * rad_tresh);
+			if(x - (2 * _rad_ts) > 0)
+				x_a = x - (2 * _rad_ts);
 			else
 				x_a = 0;
 
 			x_b = x;
 
-			if(y - rad_tresh > 0)
-				y_a = y - rad_tresh;
+			if(y - _rad_ts > 0)
+				y_a = y - _rad_ts;
 			else
 				y_a = 0;
 
-			if(y + rad_tresh < img_dim.height)
-				y_b = y + rad_tresh;
+			if(y + _rad_ts < img_dim.height)
+				y_b = y + _rad_ts;
 			else
 				y_b = img_dim.height - 1;
 		}
@@ -1470,23 +1481,23 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			x_a = x;
 
-			if(x+(2 * rad_tresh) < img_dim.width)
-				x_b = x + (2 * rad_tresh);
+			if(x+(2 * _rad_ts) < img_dim.width)
+				x_b = x + (2 * _rad_ts);
 			else
 				x_b = img_dim.width - 1;
 
-			if(y - rad_tresh > 0)
-				y_a = y - rad_tresh;
+			if(y - _rad_ts > 0)
+				y_a = y - _rad_ts;
 			else
 				y_a = 0;
 
-			if(y + rad_tresh < img_dim.height)
-				y_b = y + rad_tresh;
+			if(y + _rad_ts < img_dim.height)
+				y_b = y + _rad_ts;
 			else
 				y_b = img_dim.height - 1;
 		}
 
-		int area = ((rad_tresh * 2) + 1)*((rad_tresh * 2) + 1);
+		int area = ((_rad_ts * 2) + 1)*((_rad_ts * 2) + 1);
 		int inside_count = 0;
 		int xp,yp;
 
@@ -1499,15 +1510,7 @@ public class Yawi_2D_GUI implements PlugIn
 			}
 		}
 
-		double min_perc;
-
-		// small DELTAthreshold
-		if((upper_threshold - lower_threshold) < 10)
-			min_perc = 0.3;
-		else
-			min_perc = 0.4;
-
-		return (((double)inside_count) / area >= min_perc);
+		return (((float)inside_count) / area >= _min_perc);
 	}
 
 	/// traces an object defined by lower and upper threshold values.
