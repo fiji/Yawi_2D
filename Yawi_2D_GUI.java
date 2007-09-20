@@ -831,10 +831,15 @@ public class Yawi_2D_GUI implements PlugIn
 					"To improve the generated ROI:\n" +
 					"1. Edit->Smooth1 Roi\n" +
 					"2. Edit->Smooth2 Roi (this could be instable and mess up the ROI)\n\n" +
-					"Settings data:\n" +
-					"- Inside radius: \n" +
-					"- Inside percentage: \n" +
-					"- Threshold radius: \n\n", true);
+					"----------------------------------------\n\n" +
+					"Settings data\n\n" +
+					"- Threshold square dimension:\n" +
+					"     dimension of the square used to set the threshold, usually an high value means a wider threshold range\n\n" +
+					"- Outline search square dimension:\n" +
+					"     dimension of the square used during the outline search, usually an high value means less accuracy in the search\n\n" +
+					"- Outline search inside percentage:\n" +
+					"     minimum percentage of pixels inside a square that have to be inside the threshold in order to consider the " +
+					"square as inside a ROI, usually an high value means more accuracy\n\n", true);
 
 				d.setVisible(true);
 			}
@@ -1009,13 +1014,13 @@ public class Yawi_2D_GUI implements PlugIn
 				InsetsPanel p1 = new InsetsPanel(10, 10, 10, 10);
 				p1.setLayout(new GridLayout(3, 1));
 
-				Label l1 = new Label("Inside radius");
-				Label l2 = new Label("Inside percentage");
-				Label l3 = new Label("Threshold radius");
+				Label l3 = new Label("Threshold square dimension");
+				Label l1 = new Label("Outline search square dimension");
+				Label l2 = new Label("Outline search inside percentage");
 
+				p1.add(l3);
 				p1.add(l1);
 				p1.add(l2);
-				p1.add(l3);
 
 				add(p1, BorderLayout.WEST);
 
@@ -1024,21 +1029,21 @@ public class Yawi_2D_GUI implements PlugIn
 				((GridLayout)(p2.getLayout())).setVgap(10);
 
 				// orientation, value, visible, min, max
+ 				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, _side, 1, 2, 7);
  				rad_sel = new Scrollbar(Scrollbar.HORIZONTAL, _rad_ts, 1, 2, 6);
  				perc_sel = new Scrollbar(Scrollbar.HORIZONTAL, ((int)(_min_perc * 10)), 1, 3, 11);
- 				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, _side, 1, 2, 7);
 
+				side_sel.setBlockIncrement(1);
 				rad_sel.setBlockIncrement(1);
 				perc_sel.setBlockIncrement(1);
-				side_sel.setBlockIncrement(1);
 
+				side_sel.addAdjustmentListener(this);
 				rad_sel.addAdjustmentListener(this);
 				perc_sel.addAdjustmentListener(this);
-				side_sel.addAdjustmentListener(this);
 
+				p2.add(side_sel);
 				p2.add(rad_sel);
 				p2.add(perc_sel);
-				p2.add(side_sel);
 
 				add(p2, BorderLayout.CENTER);
 
@@ -1049,9 +1054,9 @@ public class Yawi_2D_GUI implements PlugIn
 				v2 = new Label(String.valueOf(((int)(_min_perc * 10))), Label.RIGHT);
 				v3 = new Label(String.valueOf(_side), Label.RIGHT);
 
+				p3.add(v3);
 				p3.add(v1);
 				p3.add(v2);
-				p3.add(v3);
 
 				add(p3, BorderLayout.EAST);
 
@@ -1095,21 +1100,21 @@ public class Yawi_2D_GUI implements PlugIn
 				// reset to default values
 				if(obj == reset)
 				{
+					side_sel.setValue(SIDE_DEF);
+					v3.setText(String.valueOf(SIDE_DEF));
+
 					rad_sel.setValue(RAD_DEF);
 					v1.setText(String.valueOf(RAD_DEF));
 
 					perc_sel.setValue(((int)(PERC_DEF * 10)));
 					v2.setText(String.valueOf(((int)(PERC_DEF * 10))));
-
-					side_sel.setValue(SIDE_DEF);
-					v3.setText(String.valueOf(SIDE_DEF));
 				}
 				// set setted values and exit
 				else if(obj == ok)
 				{
+					_side = side_sel.getValue();
 					_rad_ts = rad_sel.getValue();
 					_min_perc = (float)(perc_sel.getValue() / 10.0f);
-					_side = side_sel.getValue();
 
 					setVisible(false);
 					dispose();
@@ -1121,12 +1126,13 @@ public class Yawi_2D_GUI implements PlugIn
 			{
 				Object obj = e.getSource();
 
-				if(obj == rad_sel)
+				if(obj == side_sel)
+					v3.setText(String.valueOf(side_sel.getValue()));
+				else if(obj == rad_sel)
 					v1.setText(String.valueOf(rad_sel.getValue()));
 				else if(obj == perc_sel)
 					v2.setText(String.valueOf(perc_sel.getValue()));
-				else if(obj == side_sel)
-					v3.setText(String.valueOf(side_sel.getValue()));
+
 			}
 
 			public Insets getInsets()
@@ -1270,10 +1276,6 @@ public class Yawi_2D_GUI implements PlugIn
 	public void MakeROI(int x, int y)
 	{
 		start_p.setLocation(x, y);
-
-		IJ.write("SetThreshold - _side = " + _side);
-		IJ.write("Inside - _rad_ts = " + _rad_ts);
-		IJ.write("Inside - _min_perc = " + _min_perc);
 
 		SetThreshold(x, y);
 		AutoOutline(x, y);
