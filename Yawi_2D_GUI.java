@@ -545,6 +545,8 @@ public class Yawi_2D_GUI implements PlugIn
 		{
 			roi = null;
 
+			Dimension first_dim = new Dimension();
+
 			Opener opener = new Opener();
 			ImagePlus img = null;
 			ImageStack stack = null;
@@ -570,18 +572,29 @@ public class Yawi_2D_GUI implements PlugIn
 					// no images loaded yet
 					if(loaded_imgs == 0)
 					{
+						// the dimension of the first image is stored
+						first_dim.setSize(img.getWidth(), img.getHeight());
+
 						ConversionDialog d = new ConversionDialog(mw, "Convert the images", img.getType());
 
 						// build the stack
 						stack = new ImageStack(img.getWidth(), img.getHeight());
 					}
 
-					if(img.getType() != new_type)
+					// if the dimension of the current img is different from the dimension of the
+					// first one just skip it
+					if(img.getWidth() == first_dim.width && img.getHeight() == first_dim.height)
+					{
+						if(img.getType() != new_type)
 						ConvertImage(img, new_type);
 
-					stack.addSlice(files_list[i], img.getProcessor());
+						stack.addSlice(files_list[i], img.getProcessor());
 
-					loaded_imgs++;
+						loaded_imgs++;
+					}
+					else
+						IJ.write("Error loading \"" + files_list[i] + 
+								"\"\nimage dimensions are different from the stack size, image skipped\n\n");
 				}
 			}
 
@@ -684,6 +697,7 @@ public class Yawi_2D_GUI implements PlugIn
 					else
 						IJ.error("Error loading the file: " + img_file);
 				}
+					IJ.error("Error, no file selected");
 			}
 		}
 
