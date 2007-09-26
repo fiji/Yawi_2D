@@ -6,6 +6,7 @@
 - added support for 8-bit color images
 - added support for big images, when an image is bigger than the screen it's scaled properly
 - added Edit->Settings menu
+- more checks on images loading for single images and sequences
 
 
 # 2.0.1 - 2007/05/09
