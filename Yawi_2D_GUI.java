@@ -697,6 +697,7 @@ public class Yawi_2D_GUI implements PlugIn
 					else
 						IJ.error("Error loading the file: " + img_file);
 				}
+				else
 					IJ.error("Error, no file selected");
 			}
 		}
