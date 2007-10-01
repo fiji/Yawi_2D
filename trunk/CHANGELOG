@@ -1,4 +1,4 @@
-# 2.1.0 - 2007/??/??
+# 2.1.0 - 2007/10/01
 
 - fixed some bugs in the GUI
 - now the histogram is drawn wirh a red gradient in order to highlight the values ranges
