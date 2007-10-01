@@ -18,7 +18,7 @@
 // Start date:
 // 	2004-05-05
 // Last update date:
-// 	2007-09-20
+// 	2007-10-01
 //
 // Authors:
 //	Davide Coppola - dav_mc@users.sourceforge.net
@@ -697,6 +697,7 @@ public class Yawi_2D_GUI implements PlugIn
 					else
 						IJ.error("Error loading the file: " + img_file);
 				}
+				// ERROR -> no file selected
 				else
 					IJ.error("Error, no file selected");
 			}
@@ -923,7 +924,7 @@ public class Yawi_2D_GUI implements PlugIn
 				c1 = new Checkbox("8-bit gray", group, true);
 				c2 = new Checkbox("8-bit color", group, false);
 
-				Label l = new Label();
+				Label l = new Label("", Label.CENTER);
 
 				switch(type)
 				{
@@ -1002,7 +1003,7 @@ public class Yawi_2D_GUI implements PlugIn
 			public Insets getInsets()
 			{
 				// top, left, bottom, right
-				return (new Insets(20, 50, 20, 50));
+				return (new Insets(30, 50, 20, 50));
 			}
 		}
 
@@ -1043,7 +1044,7 @@ public class Yawi_2D_GUI implements PlugIn
 				p2.setLayout(new GridLayout(3, 1));
 				((GridLayout)(p2.getLayout())).setVgap(10);
 
-				// orientation, value, visible, min, max
+				// scrollbar parameters: orientation, value, visible, min, max
  				side_sel = new Scrollbar(Scrollbar.HORIZONTAL, _side, 1, 2, 7);
  				rad_sel = new Scrollbar(Scrollbar.HORIZONTAL, _rad_ts, 1, 2, 6);
  				perc_sel = new Scrollbar(Scrollbar.HORIZONTAL, ((int)(_min_perc * 10)), 1, 3, 11);
@@ -1124,7 +1125,7 @@ public class Yawi_2D_GUI implements PlugIn
 					perc_sel.setValue(((int)(PERC_DEF * 10)));
 					v2.setText(String.valueOf(((int)(PERC_DEF * 10))));
 				}
-				// set setted values and exit
+				// store setted values and exit
 				else if(obj == ok)
 				{
 					_side = side_sel.getValue();
@@ -1147,7 +1148,6 @@ public class Yawi_2D_GUI implements PlugIn
 					v1.setText(String.valueOf(rad_sel.getValue()));
 				else if(obj == perc_sel)
 					v2.setText(String.valueOf(perc_sel.getValue()));
-
 			}
 
 			public Insets getInsets()
